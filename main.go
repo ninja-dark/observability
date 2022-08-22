@@ -25,11 +25,13 @@ func main() {
 	http.ListenAndServe(":8080", r)
 }
 
+// curl -X GET loclhost:8080/alert
 func alertHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("Alert"))
 }
 
+// curl -X PUT loclhost:8080/hard
 func hardHandler(w http.ResponseWriter, r *http.Request) {
 	path := filepath.Join("static", "hard.html")
 	tmpl, err := template.ParseFiles(path)
@@ -44,6 +46,7 @@ func hardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// curl -X POST loclhost:8080/simple
 func simpleHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("Simple"))
