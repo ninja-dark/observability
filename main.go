@@ -1,50 +1,49 @@
 package main
 
 import (
-	"html/template"
-	"net/http"
-	"observability/middleware"
-	"path/filepath"
+	"elastic/handler"
+	"elastic/l"
+	sentrylog "elastic/sentry"
+	"elastic/store"
 
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
+
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 )
 
+// Переписать не на Martini
 func main() {
-	r := mux.NewRouter()
 
-	metricsMiddleware := middleware.NewMetricsMiddleware()
+	sentrylog.SentryLog()
 
-	r.Handle("/metrics", promhttp.Handler())
-	r.HandleFunc("/alert", alertHandler).Methods(http.MethodGet)
-	r.HandleFunc("/simple", simpleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/hard", hardHandler).Methods(http.MethodPut)
+	//Initialize Stores
+	articleStore, err := store.NewArticleStore()
+	parseErr(err)
+	//Initialize Handlers
+	articleHandler := handler.NewArticleHandler(articleStore)
+	panicHandler := handler.PanicHandler{}
+	//Initialize Router
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	//Routes
+	r.Get("/article/id/:id", articleHandler.Id)
+	r.Post("/article/add", articleHandler.Add)
+	r.Post("/article/search", articleHandler.Search)
+	 r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+        w.Write([]byte("Hello World!"))
+    })
 
-	r.Use(metricsMiddleware.Metrics)
-
+	r.Get("/panic", panicHandler.Handle)
+	r.Post("/log/add", panicHandler.Log)
 	http.ListenAndServe(":8080", r)
 }
 
-func alertHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Alert"))
-}
-
-func hardHandler(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("static", "hard.html")
-	tmpl, err := template.ParseFiles(path)
+func parseErr(err error) {
 	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
+		l.F(err)
 	}
-	err = tmpl.Execute(w, nil)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
-	}
-}
+	l.Log.Log("Application started")
 
-func simpleHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Simple"))
+	
 }
