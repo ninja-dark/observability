@@ -1,0 +1,4 @@
+network.host: elasticsearch
+ES_JAVA_OPTS: -Xms512m -Xmx512m
+ES_HOST: localhost
+ES_PORT: 9200
